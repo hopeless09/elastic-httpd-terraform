@@ -38,7 +38,7 @@ resource "aws_instance" "httpd" {
         connection {
             type     = "ssh"
             user     = "centos"
-            private_key = "${file("/root/demo.pem")}"
+            private_key = "${file("/var/lib/jenkins/demo.pem")}"
             host = "${aws_instance.httpd.public_ip}"
         }
 
