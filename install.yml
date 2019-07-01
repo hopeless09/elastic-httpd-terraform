@@ -1,0 +1,81 @@
+- name: Setup Web Server with beats
+  hosts: localhost 
+  become: yes 
+  tasks:
+    - name: Install Apache Web Server 
+      package:
+        name: httpd 
+        state: installed 
+    
+    - name: Start Apache Web Server 
+      service:
+        name: httpd 
+        state: restarted 
+        enabled: yes
+    
+    - name: Install Java 
+      package:
+        name: java 
+        state: installed 
+    
+    - name: Install Logstash 
+      yum:
+        name: https://artifacts.elastic.co/downloads/logstash/logstash-6.7.2.rpm
+        state: installed 
+    
+    - name: Copy Logstash Config 
+      template:
+        src: files/logstash.conf 
+        dest: /etc/logstash/conf.d/logs.conf 
+    
+    - name: Install ES Logstash Plugin 
+      shell: /usr/share/logstash/bin/logstash-plugin install logstash-output-amazon_es
+
+    - name: Start Logstash 
+      service:
+        name: logstash 
+        state: started 
+        enabled: yes 
+    
+    - name: Install Filebeat 
+      yum:
+        name: https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-6.7.2-x86_64.rpm
+        state: installed 
+
+    - name: Copy Filebeat config 
+      template:
+        src: files/filebeat.yml
+        dest: /etc/filebeat/filebeat.yml 
+
+    - name: Start Filebeat 
+      service:
+        name: filebeat 
+        state: started 
+        enabled: yes 
+    
+    - name: Install PIP 
+      package:
+        name: python2-pip 
+        state: installed 
+
+    - name: Install AWS CLI 
+      pip:
+        name: awscli 
+
+    - name: Download Prowler 
+      git: 
+        repo: https://github.com/toniblyx/prowler.git
+        dest: /root/prowler
+
+    - name: Copy Crontab Script 
+      copy:
+        src: files/prowler-cron.sh
+        dest: /root/prowler-cron.sh
+        mode: 0755
+
+    - name: Setup Crontab entry 
+      cron:
+        name: Run Prowler
+        hour: 00
+        minute: 00
+        job: /root/prowler-cron.sh >>/var/log/prowler.log
